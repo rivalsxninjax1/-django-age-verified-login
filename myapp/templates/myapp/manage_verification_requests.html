@@ -1,0 +1,37 @@
+<!-- myapp/templates/myapp/manage_verification_requests.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Verification Requests</title>
+</head>
+<body>
+    <h1>Manage Verification Requests</h1>
+    <table>
+        <tr>
+            <th>User</th>
+            <th>File</th>
+            <th>Action</th>
+        </tr>
+        {% for request in requests %}
+        <tr>
+            <td>{{ request.user.username }}</td>
+            <td><a href="{{ request.file_url }}" target="_blank">View File</a></td>
+            <td>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="verification_id" value="{{ request.id }}">
+                    <button type="submit" name="action" value="approve">Approve</button>
+                </form>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="verification_id" value="{{ request.id }}">
+                    <button type="submit" name="action" value="reject">Reject</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

@@ -1,0 +1,7 @@
+now I want to give little span message like" your age is verified you can sign up or login  "  just below the checkbox age verification after the age verification
+and I want the system to read the age and if the age is below the age verification  there should appear a upload a file option with a button "request for verification " and upon clicking the request for verification superuser should be able to accept and reject the verification if the superuser verifies the uploaded file then the user should be processed to login successful button and until the superuser verify the uploaded document user is places at the waiting for verification page give me full codes I'm a beginner so don't make it write any code by myself give me all the codes
+
+
+
+
+

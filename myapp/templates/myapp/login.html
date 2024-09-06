@@ -1,0 +1,73 @@
+<!-- myapp/templates/myapp/login.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <script>
+        let isVerified = false;
+
+        function startCamera() {
+            const video = document.querySelector('video');
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(err => console.error("Error accessing camera: ", err));
+        }
+
+        function captureImage() {
+            const video = document.querySelector('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg');  // Convert to Base64
+        }
+
+        function verifyAge() {
+            const checkbox = document.getElementById('verify-age');
+            const loginButton = document.getElementById('login-button');
+
+            if (checkbox.checked) {
+                const imageBase64 = captureImage();
+                
+                fetch("{% url 'verify_age' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ image_base64: imageBase64 })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    isVerified = data.is_verified;
+                    loginButton.disabled = !isVerified;  // Enable button if verified
+                })
+                .catch(error => console.error('Error verifying age:', error));
+            } else {
+                loginButton.disabled = true;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            startCamera();
+        });
+    </script>
+</head>
+<body>
+    <h1>Login</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <video autoplay style="display:none;"></video> <!-- Hidden video element to capture image -->
+        <label><input type="checkbox" id="verify-age" onclick="verifyAge()"> Verify your age</label>
+        <br>
+        <button type="submit" id="login-button" disabled>Login</button>
+        <a href="{% url 'signup' %}">Don't have an account? Sign up here</a>
+    </form>
+</body>
+</html>

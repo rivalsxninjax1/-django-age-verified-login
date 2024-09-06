@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Up</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            height: 100vh; /* Ensures the body takes the full height of the viewport */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto; /* Enables scrolling if content exceeds the viewport height */
+        }
+    
+        .container {
+            background-color: white;
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid #ddd;
+            margin: 20px;
+            box-sizing: border-box; /* Includes padding and border in the element's total width and height */
+        }
+    
+        h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #333;
+            font-weight: 500;
+        }
+    
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 15px;
+        }
+    
+        label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #555;
+            font-size: 14px;
+        }
+    
+        input[type="text"],
+        input[type="password"],
+        input[type="email"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+    
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        input[type="email"]:focus,
+        input[type="file"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+    
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+    
+        button,
+        .link-button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.3s ease, transform 0.2s;
+            width: 100%;
+        }
+    
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    
+        button:hover:not(:disabled),
+        .link-button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+    
+        .link-button {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            width: 100%;
+            text-align: center;
+        }
+    
+        #verification-message {
+            margin: 15px 0;
+            font-size: 14px;
+            color: green;
+            text-align: left;
+        }
+    
+        #file-upload-section {
+            display: none;
+            margin-top: 20px;
+            text-align: left;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+    
+        #file-upload-section label {
+            color: #555;
+            font-size: 14px;
+        }
+    
+        @media (max-height: 700px) {
+            body {
+                align-items: flex-start;  /* Align container to the top */
+                padding: 20px 0;  /* Add some space at the top */
+            }
+    
+            .container {
+                margin: 20px auto;  /* Center the container vertically */
+            }
+        }
+    </style>
+    
+    <script>
+        let isVerified = false;
+
+        function startCamera() {
+            const video = document.querySelector('video');
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(err => console.error("Error accessing camera: ", err));
+        }
+
+        function captureImage() {
+            const video = document.querySelector('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg');
+        }
+
+        function verifyAge() {
+            const checkbox = document.getElementById('verify-age');
+            const signupButton = document.getElementById('signup-button');
+            const messageSpan = document.getElementById('verification-message');
+            const fileUploadSection = document.getElementById('file-upload-section');
+
+            if (checkbox.checked) {
+                const imageBase64 = captureImage();
+
+                fetch("{% url 'verify_age' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ image_base64: imageBase64 })
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        isVerified = data.is_verified;
+                        if (isVerified) {
+                            signupButton.disabled = false;
+                            messageSpan.innerText = "Your age is verified; you can sign up or login.";
+                            fileUploadSection.style.display = "none";
+                        } else {
+                            signupButton.disabled = true;
+                            messageSpan.innerText = "";
+                            fileUploadSection.style.display = "block";
+                        }
+                    })
+                    .catch(error => console.error('Error verifying age:', error));
+            } else {
+                signupButton.disabled = true;
+                messageSpan.innerText = "";
+                fileUploadSection.style.display = "none";
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            startCamera();
+        });
+
+        function requestVerification() {
+            const fileInput = document.getElementById('verification-file');
+            if (fileInput.files.length === 0) {
+                alert("Please upload a file for verification.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('verification_file', fileInput.files[0]);
+
+            fetch("{% url 'request_verification' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    window.location.href = "{% url 'waiting_for_verification' %}";
+                })
+                .catch(error => console.error('Error requesting verification:', error));
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Sign Up</h1>
+        <form method="post" enctype="multipart/form-data" autocomplete="off">
+            {% csrf_token %}
+            {{ form.username.label_tag }}
+            {{ form.username }}
+        
+            {{ form.email.label_tag }}
+            {{ form.email }}
+        
+            {{ form.password1.label_tag }}
+            {{ form.password1 }}
+        
+            {{ form.password2.label_tag }}
+            {{ form.password2 }}
+        
+            <!-- Video element for capturing image -->
+            <video autoplay style="display:none;"></video>
+        
+            <!-- Checkbox for age verification -->
+            <label><input type="checkbox" id="verify-age" onclick="verifyAge()"> Verify your age</label>
+            <span id="verification-message"></span>
+        
+            <!-- File upload section for verification if age is not verified -->
+            <div id="file-upload-section">
+                <label for="verification-file">Upload a file for verification:</label>
+                <input type="file" id="verification-file" name="verification_file">
+                <button type="button" onclick="requestVerification()">Request for Verification</button>
+            </div>
+        
+            <!-- Sign up button -->
+            <button type="submit" id="signup-button" disabled>Sign Up</button>
+            <!-- Link to login page for already registered users -->
+            <a href="{% url 'login' %}" class="link-button">Already have an account? Login here</a>
+        </form>
+    </div>
+</body>
+
+</html>
